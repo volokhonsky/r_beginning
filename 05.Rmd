@@ -1,0 +1,172 @@
+---
+title: "АНАЛИЗ ДАННЫХ В СОЦИАЛЬНЫХ НАУКАХ С ПОМОЩЬЮ ЯЗЫКА R"
+output: 
+  ioslides_presentation:
+    self_contained: yes
+    incremental: true
+    widescreen: true
+---
+
+# ggplot2
+
+## 
+
+
+
+
+```{r}
+library(data.table)
+library(ggplot2)
+
+source("analyze_age.R")
+DT<-data.table(data)
+edu_age<-DT[!(iDedu_level %in% c(1,2)),.N,by=c("iDedu_level","iDage_group")]
+```
+ 
+ 
+ ##
+ 
+ Зададим эстетики:
+ 
+```{r}
+ggplot(data=edu_age,aes(x=factor(iDedu_level),y=N,fill=iDage_group))
+```
+ 
+## нарисуем точки
+
+```{r}
+ggplot(data=edu_age,aes(x=factor(iDedu_level),y=N,color=iDage_group)) + geom_point(size=3)
+```
+
+## убрать NA
+
+```{r}
+edu_age<-edu_age[!is.na(iDedu_level)]
+edu_age<-edu_age[!is.na(iDage_group)]
+ggplot(data=edu_age,aes(x=factor(iDedu_level),y=N,color=iDage_group)) + geom_point(size=3)
+```
+
+## меняем на столбики
+
+```{r}
+ggplot(data=edu_age,aes(x=factor(iDedu_level),y=N,fill=iDage_group)) + geom_bar(stat="identity")
+```
+
+## по исходным данным
+
+```{r}
+ggplot(data=DT,aes(x=factor(iDedu_level),fill=iDage_group)) + geom_bar()
+```
+
+## столбики рядом
+
+```{r}
+ggplot(data=edu_age,aes(x=factor(iDedu_level),y=N,fill=iDage_group)) + geom_bar(stat="identity", position = position_dodge())
+```
+
+
+## переподготовим данные
+
+
+```{r}
+DT[,edu:=factor(iDedu_level)]
+levels(DT$edu)<-c("","","школа","бакалавр","магистр","доктор","доктор")
+edu_age<-DT[!(edu %in% c("",NA)),.N,by=c("edu","iDage_group")]
+setnames(edu_age,"iDage_group","age")
+edu_age<-edu_age[!is.na(age)]
+```
+
+##
+
+```{r}
+ggplot(data=edu_age,aes(x=edu,y=N,fill=age)) + geom_bar(stat="identity", position = position_dodge())
+```
+
+
+##
+подпишем горизонтальную ось
+```{r}
+ggplot(data=edu_age,aes(x=edu,y=N,fill=age)) + geom_bar(stat="identity", position = position_dodge()) + labs(x="Образование")
+```
+##
+несколько геомов
+```{r}
+ggplot(data=edu_age,aes(x=edu,y=N,fill=age,label=N)) + geom_bar(stat="identity", position = position_dodge()) + labs(x="Образование") + geom_text(position=position_dodge(width=1))
+```
+
+##
+подвинем лейблы повыше, шрифт поменьше
+```{r}
+ggplot(data=edu_age,aes(x=edu,y=N,fill=age,label=N)) + geom_bar(stat="identity", position = position_dodge(width=1)) + labs(x="Образование") + geom_text(position=position_dodge(width=1), vjust=-0.6,size=3) 
+```
+
+##
+раздвинем верхнюю ось
+```{r}
+ggplot(data=edu_age,aes(x=edu,y=N,fill=age,label=N)) + geom_bar(stat="identity", position = position_dodge(width=1)) + labs(x="Образование") + geom_text(position=position_dodge(width=1), vjust=-0.6,size=3) + scale_y_continuous(limits=c(0,1600))
+```
+
+##
+поправим ширину
+```{r}
+ggplot(data=edu_age,aes(x=edu,y=N,fill=age,label=N)) + geom_bar(stat="identity", position = position_dodge(width=0.95)) + labs(x="Образование") + geom_text(position=position_dodge(width=0.95), vjust=-0.6,size=3) + scale_y_continuous(limits=c(0,1600))
+```
+
+
+## посчитаем проценты
+
+```{r}
+edu_age[,sum_by_edu:=sum(N),by=edu]
+edu_age[,share:=N/sum_by_edu]
+ggplot(data=edu_age,aes(x=edu,y=share,fill=age,label=N)) + geom_bar(stat="identity", position = position_dodge(width=0.95)) + labs(x="Образование") + geom_text(position=position_dodge(width=0.95), vjust=-0.6,size=3) + scale_y_continuous(limits=c(0,max(edu_age$share)+max(edu_age$share)*0.07))
+```
+
+## досчитаем проценты и развернём оси
+
+```{r}
+edu_age[,perc:=paste0(round(100*share,1),"%")]
+ggplot(data=edu_age,aes(x=edu,y=share,fill=age,label=perc)) + geom_bar(stat="identity", position = position_dodge(width=0.95)) + labs(x="Образование") + geom_text(position=position_dodge(width=0.95), hjust=-0.3,size=3) + scale_y_continuous(limits=c(0,max(edu_age$share)+max(edu_age$share)*0.07)) + coord_flip()
+```
+
+## а теперь линии
+
+```{r}
+
+ggplot(data=edu_age,aes(x=edu,y=share,color=age,label=perc, group=age)) + geom_line(stat="identity") + labs(x="Образование") + geom_text(hjust=-0.3,size=3) + scale_y_continuous(limits=c(0,max(edu_age$share)+max(edu_age$share)*0.07)) + theme_bw()
+```
+
+## убираем рамочки и решётку
+
+```{r}
+
+ggplot(data=edu_age,aes(x=edu,y=share,color=age,label=perc, group=age)) + geom_line(stat="identity",size=1) + labs(x="Образование") + geom_text(hjust=-0.5,size=3) + scale_y_continuous(limits=c(0,max(edu_age$share)+max(edu_age$share)*0.07)) + theme_minimal() +  theme(axis.title.y=element_blank(), axis.text.y = element_blank(), panel.grid = element_blank())
+```
+## убираем рамочки и решётку
+
+```{r}
+library(ggthemes)
+ggplot(data=edu_age,aes(x=edu,y=share,color=age,label=perc, group=age)) + geom_line(stat="identity",size=1) + labs(x="Образование") + geom_text(hjust=-0.5,size=3) + scale_y_continuous(limits=c(0,max(edu_age$share)+max(edu_age$share)*0.07)) + theme_wsj()
+```
+
+
+##
+
+```{r}
+setnames(DT,"Duration__in_seconds_","time")
+ggplot(DT[which(time<5000)][!is.na(iDage)], aes(x=time,y=iDage)) + geom_point(alpha=0.3) + geom_smooth(method="loess") + theme_wsj()
+```
+```{r}
+
+ggplot(DT[which(time<5000)][!is.na(iDage)][!is.na(iDgender)], aes(x=time,y=iDage,color=iDgender)) + geom_point(alpha=0.3) + theme_wsj() + scale_color_manual(values=c("#FF0000","green","blue","gray")) + theme(legend.title=element_blank())
+```
+
+
+```{r}
+g<-ggplot(DT[which(time<5000)][!is.na(iDage)][!is.na(iDgender)], aes(x=time,y=iDage,color=iDgender)) + geom_point(alpha=0.3) + theme_wsj() + scale_color_manual(values=c("#FF0000","green","blue","gray")) + theme(legend.title=element_blank())
+dir.create("output")
+ggsave("output/age_duration.png",g,width = 10, height=6, unit="cm")
+```
+
+##
+Рекомендую посмотреть 
+[cheat sheet](https://rstudio.com/wp-content/uploads/2015/03/ggplot2-cheatsheet.pdf)

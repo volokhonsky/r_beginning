@@ -1,0 +1,211 @@
+---
+title: "АНАЛИЗ ДАННЫХ В СОЦИАЛЬНЫХ НАУКАХ С ПОМОЩЬЮ ЯЗЫКА R"
+output: 
+  ioslides_presentation:
+    self_contained: yes
+    incremental: true
+    widescreen: true
+---
+
+# Начнём!
+
+## центральная предельная теорема
+
+```{r}
+load("data/iGLAS.Rdata")
+age<-data$iDage
+age<-age[which(age<85)]
+mean(age)
+random_sample_means<-sapply(1:10000,function(x) mean(sample(age,200)))
+hist(random_sample_means)
+
+
+
+```
+
+##
+
+```{r}
+random_sample_means2<-sapply(1:10000,function(x) mean(sample(age,10)))
+hist(random_sample_means2)
+```
+
+
+## Пара забытых нюансов
+
+**остаток от деления**
+
+```{r}
+c(5,4,6,8,9)%%3
+c(5,4,6,8,9)%%3 != 0
+c(5,4,6,8,9)%% c(3,2) # ???
+
+```
+
+**соединение векторов**
+
+
+```{r}
+a<-c(1,2)
+b<-c(3,4)
+c<-c(a,b,5,6)
+c
+```
+**sample с одним аргументом**
+Если на вход sample подать просто вектор, то size по умолчанию равен длине этого вектора. Получится тот же вектор, но случайным образом перемешанный. 
+
+```{r}
+
+```
+##
+cutting and table
+```{r}
+data[which(data$iDage>95),"iDage"]<-NA
+q<-quantile(data$iDage,c(.25,.75),na.rm=T)
+data$age_group<-cut(data$iDage,c(-Inf,q,Inf),labels = c("young","middle","old"),right=F)
+t<-table(data$age_group)
+prop.table(t)
+
+```
+
+
+##
+
+```{r}
+relig_age<-table(data$iDrp02,data$age_group)
+relig_age<-relig_age[1:4,]
+round(prop.table(relig_age,2),3)
+barplot(round(prop.table(relig_age,2),3))
+```
+
+
+## chi square test
+
+```{r}
+chisq.test(relig_age)
+round(prop.table(relig_age,1),3)
+```
+
+## Mann Whitney U
+
+```{r}
+table(data$UserLanguage)
+#data[!(data$UserLanguage %in% c("EN-GB","RU")),"UserLanguage" ]<-NA # не сработало. :-)
+levels(data$UserLanguage)
+data$lang<-factor(data$UserLanguage,levels=c("EN-GB","RU"))
+# table(data$lang)
+# levels(data$lang)
+wilcox.test(data$iOp03 ~ data$lang)
+wilcox.test(data$iOp03[data$lang=="EN-GB"],data$iOp03[data$lang=="RU"])
+
+```
+
+## Посмотрим на одну штуку
+
+```{r}
+table(data$lang,data$age_group)
+mean(data$iDage[data$lang=="EN-GB"],na.rm=T)
+```
+
+## Wilcoxon
+
+
+```{r}
+wilcox.test(data$iOP12.5,data$iOP13.5,paired=TRUE)
+```
+
+## много средних
+
+```{r}
+op_vars<-grep("iOp",  names(data),value=T)
+mean_ops<-sapply(op_vars, function (x) mean(data[,x],na.rm=T))
+is.na(mean_ops)
+delete_vars<-op_vars[is.na(mean_ops)]
+data<-data[,names(data)[!(names(data) %in% delete_vars)]]
+```
+## 
+
+```{r}
+wilcox.test(data$iOp03,data$iOp10)
+
+wilcox.test(data$iOp03,data$iOp10,paired=T)
+```
+
+
+##
+Ещё немного про датафреймы. 
+
+**создание датафреймов**
+
+```{r}
+a<-c(1,2); b<-c(3,4); c<-c(a,b,5,6)
+dt<-data.frame(v1=a,v2=b,v3=c) #имена столбцов указывать не обязательно, но можно
+```
+создадим новую пустую переменную:
+```{r}
+dt$d<-NA
+```
+А теперь для всех v1=1, напишем там "Даша":
+```{r}
+dt[which(dt$v1==1),"d"]<-"Даша"
+```
+А все двойки станут Машами:
+```{r}
+dt[which(dt$v1==2),"d"]<-"Маша"
+```
+```{r}
+sapply(dt$v1,switch,"Даша","Маша")
+```
+
+
+##
+
+А теперь сделайте то же самое, только с помощью команды cut. Создайте новый вектор и пусть для единичек это будут Даши, а для двоек Маши. Подсказываю - можно делить по числу 1.5. 
+
+## Корреляции
+```{r}
+load("data/iGLAS.Rdata")
+data_for_cor<-data[,five_point_scales[1:5]]
+library(psych)
+correlations<-corr.test(data_for_cor,method="spearman")
+p<-correlations$p
+pairs.panels(data_for_cor, scale=TRUE)
+```
+
+##
+
+```{r}
+library(data.table)
+r<-correlations$r
+r2<-as.data.frame(r)
+r2$names<-row.names(r2)
+r2<-melt(as.data.table(r2),id.vars="names")
+# p.adjusted<-correlations$p[upper.tri(correlations$p)]
+# 
+# r2<-r2[r2$names!=r2$variable]
+
+```
+
+
+
+##
+Задания для самостоятельной работы:
+1) создайте вектор чисел от 5 по 14, умножьте его на два, разделите на три, потом соберите большой вектор, в котором будет изначальный, умноженный на два, и изначальный, делённый на три
+2) создайте три последовательности чисел: все чётные числа больше одного и меньше сотни, первые тридцать положительных чётных чисел, и первые двадцать положительных чисел, кратных пяти, пусть это будут вектора a, b и c
+3) выберите 5 случайных чисел из вектора а, 3 случайных числа из вектора b и 2 случайных числа из вектора c. числа внутри каждой случайной выборки не должны повторяться. создайте из них один большой вектор и перемешайте его. посчитайте среднее, сумму, минимум и максимум этого вектора. посчитайте, сколько в нём чётных и нечётных чисел.
+
+##
+
+4) создайте вектор, в котором будет 100 случайных значений, взятых из нормального распределения со средним 42 и дисперсией 100. Постройте гистограмму этого распределения.
+
+5) Сравните между собой три группы людей, созданных вчера (young, middle,old) по любой интересующей вас переменной с помощью критерия Краскалла - Уоллеса или двух по критерию Манна-Уитни.
+
+6) Определите максимальную корреляцию между разными мнениями (шкалы, начинающиеся с iOp в данных). Что с чем сильнее всего связано? 
+
+
+
+
+##
+Ещё пара заданий усиленных. 
+1) Создайте три вектора, a, b и c. В a положите первые десять положительных чётных чисел, в b - первые десять положительных нечётных чисел, в c - первые десять чисел, кратных тройке. Перемножьте a на b, перемножьте c на вектор, состоящий из одной 1 и одной 2. Получившиеся два вектора соедините в один. Посчитайте в нём количество чисел, кратных четвёрке.
+2) Создайте из вектора в п.1 вектор, состоящий из 100 случайно выбранных чисел. Создайте дата.фрейм с этим вектором, а также колонкой 'number', в которой будут случайно сгенерированные равновероятные целые числа от 2 до 42. На основании чисел в этой колонке создайте новую колонку 'lib'. В ней будет значение 'data.table', если число в колонке number чётное, и 'dplyr', если нечётное.
