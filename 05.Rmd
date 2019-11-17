@@ -9,10 +9,16 @@ output:
 
 # ggplot2
 
+```{r include=FALSE}
+knitr::opts_chunk$set(fig.height = 3)
+knitr::opts_chunk$set(tidy.opts=list(width.cutoff=65),tidy=TRUE)
+```
+
+
 ## 
 
 
-
+Подготовим данные:
 
 ```{r}
 library(data.table)
@@ -24,9 +30,9 @@ edu_age<-DT[!(iDedu_level %in% c(1,2)),.N,by=c("iDedu_level","iDage_group")]
 ```
  
  
- ##
+##
  
- Зададим эстетики:
+Зададим эстетики:
  
 ```{r}
 ggplot(data=edu_age,aes(x=factor(iDedu_level),y=N,fill=iDage_group))
@@ -52,7 +58,9 @@ ggplot(data=edu_age,aes(x=factor(iDedu_level),y=N,color=iDage_group)) + geom_poi
 ggplot(data=edu_age,aes(x=factor(iDedu_level),y=N,fill=iDage_group)) + geom_bar(stat="identity")
 ```
 
-## по исходным данным
+## 
+
+Можно нарисовать график и по исходным данным, но это приводит к повышенной нагрузке при отрисовке графиков, а вы теряете полноценный контроль над процессом. Отлаживать графики, которые сами себе что-то вычисляют - труднее чем те, которые только рисуют. 
 
 ```{r}
 ggplot(data=DT,aes(x=factor(iDedu_level),fill=iDage_group)) + geom_bar()
@@ -66,7 +74,7 @@ ggplot(data=edu_age,aes(x=factor(iDedu_level),y=N,fill=iDage_group)) + geom_bar(
 
 
 ## переподготовим данные
-
+Перекодируем уровни с помощью превращения переменной в фактор. 
 
 ```{r}
 DT[,edu:=factor(iDedu_level)]
@@ -88,6 +96,7 @@ ggplot(data=edu_age,aes(x=edu,y=N,fill=age)) + geom_bar(stat="identity", positio
 ```{r}
 ggplot(data=edu_age,aes(x=edu,y=N,fill=age)) + geom_bar(stat="identity", position = position_dodge()) + labs(x="Образование")
 ```
+
 ##
 несколько геомов
 ```{r}
@@ -141,7 +150,9 @@ ggplot(data=edu_age,aes(x=edu,y=share,color=age,label=perc, group=age)) + geom_l
 
 ggplot(data=edu_age,aes(x=edu,y=share,color=age,label=perc, group=age)) + geom_line(stat="identity",size=1) + labs(x="Образование") + geom_text(hjust=-0.5,size=3) + scale_y_continuous(limits=c(0,max(edu_age$share)+max(edu_age$share)*0.07)) + theme_minimal() +  theme(axis.title.y=element_blank(), axis.text.y = element_blank(), panel.grid = element_blank())
 ```
-## убираем рамочки и решётку
+
+## 
+А теперь посмотрим на тему из пакета ggthemes! (Установите пакет!)
 
 ```{r}
 library(ggthemes)
@@ -150,17 +161,21 @@ ggplot(data=edu_age,aes(x=edu,y=share,color=age,label=perc, group=age)) + geom_l
 
 
 ##
-
+Посмотрим на линию тренда.
 ```{r}
 setnames(DT,"Duration__in_seconds_","time")
 ggplot(DT[which(time<5000)][!is.na(iDage)], aes(x=time,y=iDage)) + geom_point(alpha=0.3) + geom_smooth(method="loess") + theme_wsj()
 ```
+
+##
+Научимся управлять цветом
 ```{r}
 
 ggplot(DT[which(time<5000)][!is.na(iDage)][!is.na(iDgender)], aes(x=time,y=iDage,color=iDgender)) + geom_point(alpha=0.3) + theme_wsj() + scale_color_manual(values=c("#FF0000","green","blue","gray")) + theme(legend.title=element_blank())
 ```
 
-
+##
+Научимся сохранять результаты
 ```{r}
 g<-ggplot(DT[which(time<5000)][!is.na(iDage)][!is.na(iDgender)], aes(x=time,y=iDage,color=iDgender)) + geom_point(alpha=0.3) + theme_wsj() + scale_color_manual(values=c("#FF0000","green","blue","gray")) + theme(legend.title=element_blank())
 dir.create("output")
